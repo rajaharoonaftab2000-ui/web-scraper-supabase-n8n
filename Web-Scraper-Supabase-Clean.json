@@ -1,0 +1,437 @@
+{
+  "name": "Web Scraper & Supabase Data Collection Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -912,
+        384
+      ],
+      "id": "7de4cebe-6679-4c30-9e1b-a28e10825870",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "74a1312d-ba00-4558-a1a9-4f932aa4ae4e",
+              "name": "websiteURL",
+              "value": "https://flowerbouquet.pk/sitemap_products_1.xml?from=8146076139651&to=9112910823555",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -768,
+        384
+      ],
+      "id": "481324f0-ebe7-44e3-b1b4-45997ca5162c",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.websiteURL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "application/xml,text/xml,*/*"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "en-US,en;q=0.9"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -624,
+        384
+      ],
+      "id": "3692ca03-9491-4b74-9ae9-7f165de882b3",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "subpages-urls",
+              "cssSelector": "loc",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        -480,
+        384
+      ],
+      "id": "78e7297b-85f0-47a5-ac28-866d200b8fb9",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "jsCode": "const urls = $input.first().json[\"subpages-urls\"];\n\nconst productUrls = urls.filter(url => url.includes(\"/products/\"));\n\nreturn productUrls.map(url => ({\n  json: {\n    url: url\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        384
+      ],
+      "id": "cd0fed62-c95a-4e52-9aa0-78f14b832345",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "batchSize": 10,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -176,
+        384
+      ],
+      "id": "7ed01c2e-c22b-47a1-adab-75814fa418d1",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "application/xml,text/xml,*/*"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 2000
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        16,
+        400
+      ],
+      "id": "c874014a-3a13-4c90-a704-3fb812f1370c",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "Title",
+              "cssSelector": "h1"
+            },
+            {
+              "key": "Price",
+              "cssSelector": ".price-item--sale, .price-item--regular"
+            },
+            {
+              "key": "Description",
+              "cssSelector": ".product-single_description, .rte"
+            },
+            {
+              "key": "Product-url",
+              "cssSelector": "link[rel=\"canonical\"]",
+              "returnValue": "attribute",
+              "attribute": "href"
+            },
+            {
+              "key": "image_url",
+              "cssSelector": ".product__media img",
+              "returnValue": "attribute",
+              "attribute": "src"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        192,
+        400
+      ],
+      "id": "3993c3a2-b848-455a-a656-fcbfa4cac2a2",
+      "name": "HTML1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2ae51b87-d2bf-42d1-94b1-bbc6ea7a1211",
+              "name": "pagecontent",
+              "value": "=product: {{ $json.Title }} /n price:{{ $json.Price }} /n Description:{{ $json.Description }}",
+              "type": "string"
+            },
+            {
+              "id": "8626e7ea-22a4-4d80-aa2d-31ef83c3d924",
+              "name": "price",
+              "value": "={{ $json.Price }}",
+              "type": "string"
+            },
+            {
+              "id": "bcf95e0e-5ffe-4552-8426-85d99151c4f7",
+              "name": "product_url",
+              "value": "={{ $json['Product-url'] }}",
+              "type": "string"
+            },
+            {
+              "id": "5753cf04-17e7-4bb6-829a-e2a64891ae23",
+              "name": "image",
+              "value": "={{ $json.image_url }}",
+              "type": "string"
+            },
+            {
+              "id": "f96d74e6-2fc3-49f0-8cd1-0fb37019e45d",
+              "name": "h1",
+              "value": "={{ $json.Title }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        400,
+        400
+      ],
+      "id": "3561ae46-30da-4eb6-b1da-e30778e8b925",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "tableId": "products",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "h1",
+              "fieldValue": "={{ $json.h1 }}"
+            },
+            {
+              "fieldId": "price",
+              "fieldValue": "={{ $json.price }}"
+            },
+            {
+              "fieldId": "page_content",
+              "fieldValue": "={{ $json.pagecontent }}"
+            },
+            {
+              "fieldId": "description",
+              "fieldValue": "={{ $('HTML1').item.json.Description }}"
+            },
+            {
+              "fieldId": "image_url",
+              "fieldValue": "={{ $('HTML1').item.json.image_url }}"
+            },
+            {
+              "fieldId": "product_url",
+              "fieldValue": "={{ $('HTML1').item.json['Product-url'] }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "10a1130b-fb9c-4371-8b16-e4da10ed5828",
+      "name": "Create a row"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        352,
+        0
+      ],
+      "id": "e4daac19-1690-4895-840d-2716d33c8df6",
+      "name": "Wait"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "HTML1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "nodeGroups": []
+}
